@@ -38,13 +38,15 @@ services:
     env_file:
       - ./init.d/nacos-standlone-mysql.env
     volumes:
-      - ./standalone-logs/:/home/nacos/logs
+      - ./logs/nacos/:/home/nacos/logs
       - ./init.d/custom.properties:/home/nacos/init.d/custom.properties
     ports:
       - "8848:8848"
     depends_on:
       - tumo-cloud-mysql
     restart: on-failure
+    networks:
+      - tumo_cloud_net
 
   tumo-cloud-gateway:
     image: registry.cn-hangzhou.aliyuncs.com/tumo/tumo-cloud-gateway
