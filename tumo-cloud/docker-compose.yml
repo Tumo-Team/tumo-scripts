@@ -1,0 +1,122 @@
+version: "3.5"
+
+services:
+  tumo-cloud-mysql:
+    image: registry.cn-hangzhou.aliyuncs.com/tumo/tumo-cloud-mysql
+    hostname: tumo-cloud-mysql
+    container_name: tumo-cloud-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    restart: always
+    ports:
+      - 3307:3306
+    networks:
+      - tumo_cloud_net
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+
+  tumo-cloud-redis:
+    image: redis:6.0
+    hostname: tumo-cloud-redis
+    container_name: tumo-cloud-redis
+    restart: always
+    privileged: true
+    command: "redis-server --appendonly yes"
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - 6380:6379
+    networks:
+      - tumo_cloud_net
+    volumes:
+      - ./redis_data:/data
+
+  tumo-cloud-nacos:
+    image: nacos/nacos-server:2.0.3
+    container_name: tumo-cloud-nacos
+    hostname: tumo-cloud-nacos
+    env_file:
+      - ./init.d/nacos-standlone-mysql.env
+    volumes:
+      - ./standalone-logs/:/home/nacos/logs
+      - ./init.d/custom.properties:/home/nacos/init.d/custom.properties
+    ports:
+      - "8848:8848"
+    depends_on:
+      - tumo-cloud-mysql
+    restart: on-failure
+
+  tumo-cloud-gateway:
+    image: registry.cn-hangzhou.aliyuncs.com/tumo/tumo-cloud-gateway
+    hostname: tumo-cloud-gateway
+    container_name: tumo-cloud-gateway
+    restart: always
+    ports:
+      - 9999:9999
+    networks:
+      tumo_cloud_net:
+        ipv4_address: 172.31.1.1
+    volumes:
+      - ./logs:/build/logs
+
+  tumo-cloud-auth:
+    image: registry.cn-hangzhou.aliyuncs.com/tumo/tumo-cloud-auth
+    hostname: tumo-cloud-auth
+    container_name: tumo-cloud-auth
+    restart: always
+    ports:
+      - 3000:3000
+    networks:
+      - tumo_cloud_net
+    volumes:
+      - ./logs:/build/logs
+
+  tumo-cloud-upms:
+    image: registry.cn-hangzhou.aliyuncs.com/tumo/tumo-cloud-upms
+    hostname: tumo-cloud-upms
+    container_name: tumo-cloud-upms
+    restart: always
+    ports:
+      - 4000:4000
+    networks:
+      - tumo_cloud_net
+    volumes:
+      - ./logs:/build/logs
+
+  tumo-cloud-visual-admin:
+    image: registry.cn-hangzhou.aliyuncs.com/tumo/tumo-cloud-visual-admin
+    hostname: tumo-cloud-visual-admin
+    container_name: tumo-cloud-visual-admin
+    ports:
+      - 5001:5001
+    networks:
+      - tumo_cloud_net
+    volumes:
+      - ./logs:/build/logs
+
+  tumo-cloud-visual-sentinel:
+    image: registry.cn-hangzhou.aliyuncs.com/tumo/tumo-cloud-visual-sentinel
+    hostname: tumo-cloud-visual-sentinel
+    container_name: tumo-cloud-visual-sentinel
+    ports:
+      - 5002:5002
+    networks:
+      - tumo_cloud_net
+    volumes:
+      - ./logs:/build/logs
+
+  tumo-cloud-ui:
+    image: registry.cn-hangzhou.aliyuncs.com/tumo/tumo-cloud-ui
+    restart: always
+    container_name: tumo-cloud-ui
+    ports:
+      - 8092:80
+    networks:
+      - tumo_cloud_net
+
+networks:
+  tumo_cloud_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.1.0/16
